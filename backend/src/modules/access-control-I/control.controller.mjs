@@ -1,4 +1,4 @@
-import { getUser as getUserModel, getUserByName as getUserByNameModel, getUserByEmail as getUserByEmailModel, getUserRoleById as getUserRoleByIdModel } from './control.model.mjs'
+import { getUser as getUserModel, getUserByName as getUserByNameModel, getUserByEmail as getUserByEmailModel, getUserRoleById as getUserRoleByIdModel, getAllUsers as getAllUsersModel } from './control.model.mjs'
 
 export async function getUser(req, res) {
 	try {
@@ -116,5 +116,23 @@ export async function getUserRole(req, res) {
 	}
 }
 
-export default { getUser, getUserByName, getUserByEmail, getUserRole }
+export async function getAllUsers(req, res) {
+	try {
+		const users = await getAllUsersModel()
+		const result = (users || []).map((u) => ({
+			first_name: u.first_name,
+			last_name: u.last_name,
+			role_id: u.role_id,
+			mail: u.mail,
+			is_active: Boolean(u.is_active)
+		}))
+
+		return res.status(200).json(result)
+	} catch (error) {
+		console.error('getAllUsers controller error:', error)
+		return res.status(500).json({ message: 'Internal server error' })
+	}
+}
+
+export default { getUser, getUserByName, getUserByEmail, getUserRole, getAllUsers }
 

@@ -50,5 +50,16 @@ export async function getUserRoleById(userId) {
 }
 
 
+export async function getAllUsers() {
+	const query = `SELECT first_name, role_id, last_name, email AS mail, is_active FROM users`;
+	try {
+		const [rows] = await db.execute(query);
+		return rows || []
+	} catch (error) {
+		throw error
+	}
+}
 
-export default { getUser, getUserByName, getUserByEmail, getUserRoleById }
+
+
+export default { getUser, getUserByName, getUserByEmail, getUserRoleById, getAllUsers }

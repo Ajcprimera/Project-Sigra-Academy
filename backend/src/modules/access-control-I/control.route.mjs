@@ -1,8 +1,11 @@
 import express from 'express'
-import { getUser, getUserByName, getUserByEmail, getUserRole } from './control.controller.mjs'
+import { getUser, getUserByName, getUserByEmail, getUserRole, getAllUsers } from './control.controller.mjs'
 import { validateGetUser, validateGetUserName, validateGetUserEmail, validateGetRole } from './control.schema.mjs'
 
 const router = express.Router()
+
+// GET /users -> devuelve lista de usuarios (first_name, role_id, last_name, mail, is_active)
+router.get('/users', getAllUsers)
 
 // GET /users/:id  -> devuelve usuario por user_id
 router.get('/users/:id', validateGetUser, getUser)
