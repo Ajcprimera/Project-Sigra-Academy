@@ -1,7 +1,8 @@
 const API_URL = 'http://localhost:3000/api/academic-manager'
 
 // Obtener el ID del estudiante (por ahora hardcodeado, luego vendrá de la sesión)
-const STUDENT_ID = 3
+const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+const STUDENT_ID = storedUser ? storedUser.user_id : 3;
 
 // Mapeo de materias a imágenes
 const courseImages = {

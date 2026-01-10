@@ -1,24 +1,32 @@
-import { Router } from 'express';
-import { GradesLogRoutes } from '../../modules/grades-record-V/grades/grades.route.mjs';
-import { SETTINGS } from '../../../config/settings.config.mjs';
-import { RecordsRoutes } from '../../modules/grades-record-V/records/records.route.mjs'; 
-import {Router} from 'express';
-import { subjectRoute } from '../../modules/academic-structure-II/subjects/subjects.route.mjs';
-import managerRoutes from '../../modules/academic-manager-III/manager.route.mjs'
+import { Router } from "express";
+import { SETTINGS } from "../../../config/settings.config.mjs";
+import { controlRoute } from "../../modules/access-control-I/control.route.mjs";
+import { subjectRoute } from "../../modules/academic-structure-II/subjects/subjects.route.mjs";
+import { GradesLogRoutes } from "../../modules/grades-record-V/grades/grades.route.mjs";
+import { RecordsRoutes } from "../../modules/grades-record-V/records/records.route.mjs";
+import { prelaciesRoute } from "../../modules/academic-structure-II/prelacies/prelacies.route.mjs";
+import { SectionRoutes } from "../../modules/academic-structure-II/sections/section.route.mjs";
+import { GradeRoutes } from "../../modules/academic-structure-II/grades/grade.route.mjs";
+import { YearRoutes } from "../../modules/academic-structure-II/years/year.route.mjs";
+import { managerRoutes } from '../../modules/academic-manager-III/manager.route.mjs'
 
 const router = Router();
 
-router.use('/academic-manager', managerRoutes)
 
-// Definir todas las rutas de los modulos aquí
 export const ListRoutes = {
+    auth: {
+        control: router.use(`${SETTINGS.BASE_PATH}/auth`, controlRoute)
+    },
+    academicStructure: {
+        subjects: router.use(`${SETTINGS.BASE_PATH}/subjects`, subjectRoute),
+        prelacies: router.use(`${SETTINGS.BASE_PATH}/prelacies`, prelaciesRoute),
+        sections: router.use(`${SETTINGS.BASE_PATH}/sections`, SectionRoutes),
+        gradeAcademic: router.use(`${SETTINGS.BASE_PATH}/grades`, GradeRoutes),
+        years: router.use(`${SETTINGS.BASE_PATH}/years`, YearRoutes),
+        academicManager: router.use(`${SETTINGS.BASE_PATH}/academic-manager`, managerRoutes)
+    },
     grades: {
         grades: router.use(`${SETTINGS.BASE_PATH}/grades-log`, GradesLogRoutes),
         records: router.use(`${SETTINGS.BASE_PATH}/records`, RecordsRoutes)
-    },
-    subject: router.use("/subjects",subjectRoute),
-    
-    academicManager: '/academic-manager',
+    }  
 }
-
-export default router
