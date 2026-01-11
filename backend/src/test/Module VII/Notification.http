@@ -1,0 +1,2 @@
+### ruta para obtener todas las notificaciones 
+GET http://localhost:5200/api/notifications/all
