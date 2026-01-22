@@ -30,10 +30,12 @@
           <span class="sr-only">Abrir menú de perfil</span>
         </button>
         <div class="profile-dropdown" id="profile-dropdown" role="menu">
-          <div class="profile-info" id="profile-info-name">Usuario</div>
-          <button type="button" class="profile-item" data-profile-action="create" role="menuitem">Crear usuario</button>
-          <button type="button" class="profile-item" data-profile-action="edit" role="menuitem">Editar usuario</button>
-          <button type="button" class="profile-item" data-profile-action="logout" role="menuitem">Cerrar sesión</button>
+          <ul class="profile-list" role="menu">
+            <li class="profile-info" id="profile-info-name" role="presentation">Usuario</li>
+            <li role="none"><button type="button" class="profile-item" data-profile-action="create" role="menuitem">Crear usuario</button></li>
+            <li role="none"><button type="button" class="profile-item" data-profile-action="edit" role="menuitem">Editar usuario</button></li>
+            <li role="none"><button type="button" class="profile-item" data-profile-action="logout" role="menuitem">Cerrar sesión</button></li>
+          </ul>
         </div>
       </div>
     </nav>
@@ -78,13 +80,7 @@
       </div>
 
       <div class="pagination" aria-label="Paginación de usuarios">
-        <a class="page-item icon" href="#" aria-label="Página anterior">&#8249;</a>
-        <a class="page-item" href="#">1</a>
-        <a class="page-item active" href="#" aria-current="page">2</a>
-        <a class="page-item" href="#">3</a>
-        <a class="page-item" href="#">4</a>
-        <a class="page-item" href="#">5</a>
-        <a class="page-item icon" href="#" aria-label="Página siguiente">&#8250;</a>
+        <div id="pagination" class="pagination-content"></div>
       </div>
     </section>
   </main>
@@ -97,6 +93,8 @@
       const profileDropdown = document.getElementById('profile-dropdown')
       const profileAvatar = document.getElementById('profile-avatar')
       const profileInfoName = document.getElementById('profile-info-name')
+      const paginationEl = document.getElementById('pagination')
+      const PAGE_SIZE = 8
 
       const ROLE_LABELS = {
         1: 'Administrador',
@@ -124,40 +122,34 @@
         }
       }
 
-      function renderUsers(users = []) {
-        if (!users.length) {
-          tbody.innerHTML = '<tr><td colspan="5">No hay usuarios registrados.</td></tr>'
-          return
-        }
+      function actionButtonsFactory() {
+        const loggedUser = getStoredUser() || {}
+        const loggedId = loggedUser.id || loggedUser.user_id
 
-        const rows = users.map((user) => {
+        return (user) => {
           const roleId = Number(user.role_id)
-          const role = ROLE_LABELS[roleId] || `Rol ${roleId || 'N/D'}`
-          const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || 'Sin nombre'
-          const email = user.email || 'Sin correo'
-          const isActive = user.is_active ?? true
+          const isAdminRow = roleId === 1
+          const isSelf = loggedId && Number(user.user_id) === Number(loggedId)
 
           const encodedUser = encodeURIComponent(JSON.stringify(user))
 
-          return `
-            <tr>
-              <td>${name}</td>
-              <td>${role}</td>
-              <td>${badge(isActive)}</td>
-              <td>${email}</td>
-              <td class="actions-cell">
+          const viewBtn = `
                 <button class="icon-link" type="button" data-action="view" data-user="${encodedUser}" aria-label="Ver usuario">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                     <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6" />
                   </svg>
-                </button>
+                </button>`
+
+          const editBtn = `
                 <button class="icon-link" type="button" data-action="edit" data-user="${encodedUser}" aria-label="Editar usuario">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path d="M4 20h4l9.5-9.5a1.5 1.5 0 0 0 0-2.12l-1.88-1.88a1.5 1.5 0 0 0-2.12 0L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
                     <path d="M13.5 6.5 17.5 10.5" stroke="currentColor" stroke-width="1.6" />
                   </svg>
-                </button>
+                </button>`
+
+          const deleteBtn = `
                 <button class="icon-link danger" type="button" data-action="delete" data-user="${encodedUser}" aria-label="Eliminar usuario">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path d="M5.5 7h13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
@@ -166,13 +158,77 @@
                     <path d="M9 7V5.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5.5V7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                     <path d="M6.5 7 7 18a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l.5-11" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
                   </svg>
-                </button>
+                </button>`
+
+          if (isAdminRow) {
+            if (isSelf) return `${viewBtn} ${editBtn}`
+            return viewBtn
+          }
+
+          return `${viewBtn} ${editBtn} ${deleteBtn}`
+        }
+      }
+
+      function renderPagination(totalPages) {
+        if (!paginationEl) return
+        if (totalPages <= 1) {
+          paginationEl.innerHTML = ''
+          return
+        }
+
+        let html = ''
+        const prevDisabled = currentPage === 1 ? 'disabled' : ''
+        const nextDisabled = currentPage === totalPages ? 'disabled' : ''
+
+        html += `<button class="page-item icon" type="button" data-page="${currentPage - 1}" aria-label="Página anterior" ${prevDisabled}>‹</button>`
+
+        for (let page = 1; page <= totalPages; page += 1) {
+          const active = page === currentPage ? 'active' : ''
+          const aria = page === currentPage ? 'aria-current="page"' : ''
+          html += `<button class="page-item ${active}" type="button" data-page="${page}" ${aria}>${page}</button>`
+        }
+
+        html += `<button class="page-item icon" type="button" data-page="${currentPage + 1}" aria-label="Página siguiente" ${nextDisabled}>›</button>`
+
+        paginationEl.innerHTML = html
+      }
+
+      function renderUsers(users = []) {
+        const actionButtons = actionButtonsFactory()
+
+        if (!users.length) {
+          tbody.innerHTML = '<tr><td colspan="5">No hay usuarios registrados.</td></tr>'
+          renderPagination(0)
+          return
+        }
+
+        const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE))
+        if (currentPage > totalPages) currentPage = totalPages
+        const start = (currentPage - 1) * PAGE_SIZE
+        const pageUsers = users.slice(start, start + PAGE_SIZE)
+
+        const rows = pageUsers.map((user) => {
+          const roleId = Number(user.role_id)
+          const role = ROLE_LABELS[roleId] || `Rol ${roleId || 'N/D'}`
+          const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || 'Sin nombre'
+          const email = user.email || 'Sin correo'
+          const isActive = user.is_active ?? true
+
+          return `
+            <tr>
+              <td>${name}</td>
+              <td>${role}</td>
+              <td>${badge(isActive)}</td>
+              <td>${email}</td>
+              <td class="actions-cell">
+                ${actionButtons(user)}
               </td>
             </tr>
           `
         })
 
         tbody.innerHTML = rows.join('')
+        renderPagination(totalPages)
       }
 
       function getDisplayName(user) {
@@ -215,6 +271,8 @@
       }
 
       let allUsers = []
+      let filteredUsers = []
+      let currentPage = 1
       let currentUser = null
 
       function getAuthHeaders() {
@@ -229,6 +287,35 @@
           return JSON.parse(raw)
         } catch (_) {
           return null
+        }
+      }
+
+      function clearSessionStorage() {
+        localStorage.removeItem('sigra_token')
+        localStorage.removeItem('sigra_user')
+        localStorage.removeItem('sigra_user_raw')
+      }
+
+      async function logoutUser() {
+        const stored = getStoredUser()
+        const userId = stored?.id || stored?.user_id
+        try {
+          if (userId) {
+            const response = await fetch(`${API_BASE}/logout/${userId}`, {
+              method: 'POST',
+              headers: { ...getAuthHeaders() }
+            })
+
+            if (!response.ok) {
+              const err = await response.json().catch(() => ({}))
+              console.warn('No se pudo cerrar sesión en el backend:', err.error || response.statusText)
+            }
+          }
+        } catch (error) {
+          console.error('Error llamando a logout en backend:', error)
+        } finally {
+          clearSessionStorage()
+          window.location.href = './login.html'
         }
       }
 
@@ -249,12 +336,13 @@
 
       function applyFilter() {
         const term = (document.getElementById('user-filter').value || '').toLowerCase()
-        const filtered = allUsers.filter((u) => {
+        filteredUsers = allUsers.filter((u) => {
           const name = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase()
           const email = (u.email || '').toLowerCase()
           return name.includes(term) || email.includes(term)
         })
-        renderUsers(filtered)
+        currentPage = 1
+        renderUsers(filteredUsers)
       }
 
       async function loadUsers() {
@@ -263,8 +351,10 @@
           if (!response.ok) throw new Error('No se pudo obtener usuarios')
           const data = await response.json()
           allUsers = data.users || []
+          filteredUsers = allUsers
+          currentPage = 1
           console.log('Usuarios cargados:', allUsers)
-          renderUsers(allUsers)
+          renderUsers(filteredUsers)
         } catch (error) {
           tbody.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`
           console.error('Error cargando usuarios:', error)
@@ -295,7 +385,8 @@
             ensureRoleOption(input, value)
             input.value = value ?? ''
             const isAdmin = Number(value) === 1
-            input.disabled = mode === 'view' || isAdmin
+            const lockRoleChange = mode === 'edit' // No permitir cambiar entre profesor/estudiante al editar
+            input.disabled = mode === 'view' || isAdmin || lockRoleChange
           } else {
             input.value = value ?? ''
             input.disabled = mode === 'view'
@@ -375,11 +466,9 @@
         profileBtn.setAttribute('aria-expanded', nextState ? 'true' : 'false')
       }
 
-      function handleProfileAction(action) {
+      async function handleProfileAction(action) {
         if (action === 'logout') {
-          localStorage.removeItem('sigra_token')
-          localStorage.removeItem('sigra_user')
-          window.location.href = './login.html'
+          await logoutUser()
           return
         }
 
@@ -405,6 +494,21 @@
           toggleProfileDropdown(false)
         }
       })
+
+      if (paginationEl) {
+        paginationEl.addEventListener('click', (evt) => {
+          const btn = evt.target.closest('[data-page]')
+          if (!btn || btn.disabled) return
+          const page = Number(btn.dataset.page)
+          if (Number.isNaN(page)) return
+
+          const totalPages = Math.max(1, Math.ceil((filteredUsers || []).length / PAGE_SIZE))
+          const nextPage = Math.min(Math.max(page, 1), totalPages)
+          if (nextPage === currentPage) return
+          currentPage = nextPage
+          renderUsers(filteredUsers)
+        })
+      }
 
       profileDropdown.addEventListener('click', (evt) => {
         const item = evt.target.closest('[data-profile-action]')
