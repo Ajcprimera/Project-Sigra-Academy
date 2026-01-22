@@ -45,8 +45,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Por favor completa todos los campos requeridos.');
                 return;
             }
+
+            // Validar teléfono: exactamente 12 dígitos
+            const digitsOnlyPhone = (phone || '').replace(/\D/g, '');
+            if (digitsOnlyPhone.length !== 12) {
+                alert('El número de teléfono debe contener exactamente 12 dígitos.');
+                return;
+            }
+
+            // Validar contraseñas: iguales, longitud mínima y complejidad
             if (password !== confirmPassword) {
                 alert('Las contraseñas no coinciden.');
+                return;
+            }
+
+            // Longitud mínima
+            if ((password || '').length < 8 || (password || '').length > 20) {
+                alert('La contraseña debe tener entre 8 y 20 caracteres.');
+                return;
+            }
+
+            // Debe contener al menos una mayúscula, una minúscula, un número y un carácter especial permitido (- _ + * / ?)
+            const pwdRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[-_+\*\/\?]).+$/;
+            if (!pwdRegex.test(password)) {
+                alert('La contraseña debe contener al menos: una letra mayúscula, una letra minúscula, un número y uno de los caracteres permitidos: - _ + * / ?');
                 return;
             }
 
@@ -63,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 first_name: firstName,
                 last_name: lastName,
                 email,
-                phone,
+                phone: digitsOnlyPhone,
                 password_hash: password
             };
 
