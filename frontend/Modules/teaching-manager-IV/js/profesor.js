@@ -1,8 +1,7 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://localhost:5200/api';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = JSON.parse(localStorage.getItem('sigra_user'));
-    
     if (!user) {
         console.warn("Sin sesión activa.");
         return;
@@ -31,7 +30,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         formRecurso.addEventListener('submit', manejarSubidaRecurso);
     }
 });
-
 // --- 1. FUNCIÓN: CARGAR ACTIVIDADES (TAREAS) ---
 async function cargarActividadesProf(assignmentId) {
     try {
@@ -39,7 +37,6 @@ async function cargarActividadesProf(assignmentId) {
         const data = await res.json();
         const lista = document.getElementById('lista-tareas-prof');
         if (!lista) return;
-
         lista.innerHTML = '';
         if (data.activities && data.activities.length > 0) {
             data.activities.forEach(act => {
@@ -53,21 +50,16 @@ async function cargarActividadesProf(assignmentId) {
         }
     } catch (e) { console.error("Error actividades:", e); }
 }
-
 // --- 2. FUNCIÓN: CARGAR RECURSOS (REPOSITORIO) ---
 async function cargarMaterialApoyo() {
     const assignmentId = sessionStorage.getItem('active_assignment');
     if (!assignmentId) return;
-    
     try {
         const res = await fetch(`${API_URL}/resources/assignments/${assignmentId}/resources`);
         const data = await res.json();
-        
         const contenedor = document.getElementById('lista-recursos'); 
         if (!contenedor) return;
-
         contenedor.innerHTML = '';
-
         if (data.resources && data.resources.length > 0) {
             contenedor.innerHTML = data.resources.map(r => `
                 <div class="card" style="padding:15px; text-align:center; border:1px solid #eee; border-radius:12px; position:relative; min-height:180px;">
@@ -87,7 +79,7 @@ async function cargarMaterialApoyo() {
                     <h4 style="margin:10px 0; font-size:1rem;">${r.title}</h4>
                     <p style="font-size:0.75em; color:#666; margin-bottom:10px;">Tipo: ${r.resource_type}</p>
                     
-                    <a href="http://localhost:3000/${r.file_path_or_url}" target="_blank" 
+                    <a href="http://localhost:5200/uploads/resources/${r.file_path_or_url.split('\\').pop()}" target="_blank" 
                        class="btn-primario" style="text-decoration:none; display:inline-block; font-size:0.85rem; padding:5px 10px; background:#123E6A; color:white; border-radius:5px;">
                         <i class="fas fa-external-link-alt"></i> Ver Recurso
                     </a>
@@ -100,23 +92,18 @@ async function cargarMaterialApoyo() {
         console.error("Error cargando recursos:", e); 
     }
 }
-
 function abrirModalRecurso() {
     const modal = document.getElementById('modal-recurso');
     if (modal) {
         modal.style.display = 'flex';
     }
 }
-// --- VARIABLES DE ESTADO PARA RECURSOS ---
 let editMode = false;
 let currentResourceId = null;
-
-// --- FUNCIONES DEL MODAL (Expuestas a window) ---
 function abrirModalRecurso() {
     const modal = document.getElementById('modal-recurso');
     if (modal) modal.style.display = 'flex';
 }
-
 function cerrarModalRecurso() {
     const modal = document.getElementById('modal-recurso');
     if (modal) {
@@ -124,7 +111,6 @@ function cerrarModalRecurso() {
         resetFormularioRecurso();
     }
 }
-
 function resetFormularioRecurso() {
     editMode = false;
     currentResourceId = null;
@@ -133,29 +119,21 @@ function resetFormularioRecurso() {
     const tituloModal = document.querySelector('#modal-recurso h2');
     if (tituloModal) tituloModal.innerText = "Subir Nuevo Material";
 }
-
-// Prepara el modal para editar
 function prepararEdicion(id, titulo, tipo) {
     editMode = true;
     currentResourceId = id;
-    
     document.getElementById('res-title').value = titulo;
     document.getElementById('res-type').value = tipo;
-    
     const tituloModal = document.querySelector('#modal-recurso h2');
     if (tituloModal) tituloModal.innerText = "Editar Recurso";
-    
     abrirModalRecurso();
 }
-
 async function eliminarRecurso(id) {
     if (!confirm("¿Seguro que quieres eliminar este recurso permanentemente?")) return;
-
     try {
         const res = await fetch(`${API_URL}/resources/delete/${id}`, {
             method: 'DELETE'
         });
-
         if (res.ok) {
             alert("✅ Recurso eliminado correctamente");
             cargarMaterialApoyo();
@@ -167,54 +145,40 @@ async function eliminarRecurso(id) {
         console.error("Error al borrar:", e);
     }
 }
-
 function cerrarModalRecurso() {
     const modal = document.getElementById('modal-recurso');
     if (modal) {
         modal.style.display = 'none';
     }
 }
-
-// Asegúrate de exponerlas globalmente si las llamas desde el HTML
 window.abrirModalRecurso = abrirModalRecurso;
 window.cerrarModalRecurso = cerrarModalRecurso;
-
 // --- 3. FUNCIÓN: MANEJAR SUBIDA DE ARCHIVOS ---
 async function manejarSubidaRecurso(e) {
     e.preventDefault();
     const assignmentId = sessionStorage.getItem('active_assignment');
-    
     if (!assignmentId) return alert("Error: No hay asignatura activa.");
-
     const formData = new FormData();
     formData.append('title', document.getElementById('res-title').value);
     formData.append('resource_type', document.getElementById('res-type').value);
-    
-    // Solo enviamos assignment_id si estamos creando
     if (!editMode) {
         formData.append('assignment_id', assignmentId);
     }
-
     const fileInput = document.getElementById('res-file');
     if (fileInput.files[0]) {
-        // NOMBRE CLAVE: file_path_or_url (como pide tu controller)
         formData.append('file_path_or_url', fileInput.files[0]);
     } else if (!editMode) {
         return alert("Por favor selecciona un archivo");
     }
-
     const url = editMode 
         ? `${API_URL}/resources/update/${currentResourceId}` 
         : `${API_URL}/resources/create`;
-    
     const method = editMode ? 'PATCH' : 'POST';
-
     try {
         const res = await fetch(url, {
             method: method,
             body: formData
         });
-
         if (res.ok) {
             alert(editMode ? "✅ Recurso actualizado" : "✅ Recurso creado");
             cerrarModalRecurso();
@@ -227,24 +191,16 @@ async function manejarSubidaRecurso(e) {
         console.error("Error en petición:", err);
     }
 }
-
 async function cargarListaAlumnos() {
     const assignmentId = sessionStorage.getItem('active_assignment'); 
     if (!assignmentId) return;
-
     try {
-        // CORRECCIÓN: Se agrega la variable assignmentId a la URL
         const res = await fetch(`${API_URL}/assignments/assignment/${assignmentId}/people`);
         const data = await res.json();
-
-        // Según el JSON que me pasaste antes, los alumnos están en data.people.students
         const listaAlumnos = data.people?.students || []; 
-
         const tablaBody = document.getElementById('lista-alumnos-body');
         if (!tablaBody) return;
-
         tablaBody.innerHTML = ''; 
-
         if (listaAlumnos.length > 0) {
             listaAlumnos.forEach((alumno, index) => {
                 tablaBody.innerHTML += `
@@ -270,27 +226,20 @@ async function cargarListaAlumnos() {
 async function cargarTablaAsistencia() {
     const assignmentId = sessionStorage.getItem('active_assignment');
     const tablaBody = document.getElementById('lista-asistencia-body'); // Asegúrate de que este ID exista en el HTML
-    
     if (!tablaBody) return;
-
     try {
         const res = await fetch(`${API_URL}/assistance/assignment/${assignmentId}`);
         const data = await res.json();
-
         console.log("Datos de asistencia recibidos:", data);
-
         tablaBody.innerHTML = ''; 
-
         // Según tu JSON, los datos vienen en data.assistances
         const registros = data.assistances || [];
-
         if (registros.length > 0) {
             registros.forEach(asist => {
                 // Formateamos la fecha para que sea legible (Día/Mes/Año Hora:Min)
                 const fecha = new Date(asist.access_timestamp);
                 const fechaFormateada = fecha.toLocaleDateString() + ' ' + 
                                        fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
                 tablaBody.innerHTML += `
                     <tr>
                         <td>${asist.student_name}</td>
@@ -311,41 +260,7 @@ async function cargarTablaAsistencia() {
         console.error("Error al cargar asistencia:", error);
     }
 }
-
-document.getElementById('form-crear-tarea')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const assignmentId = sessionStorage.getItem('active_assignment');
-    
-    // Captura exacta de tus campos según el HTML anterior
-    const nuevaTarea = {
-        assignment_id: parseInt(assignmentId),
-        title: document.getElementById('tarea-titulo').value,
-        description: document.getElementById('tarea-desc').value,
-        weight_percentage: parseFloat(document.getElementById('tarea-weight').value),
-        due_date: document.getElementById('tarea-fin').value // El formato date de HTML es compatible
-    };
-
-    try {
-        // USANDO LA RUTA DE TU ARCHIVO .HTTP: /api/activities/create
-        const res = await fetch(`${API_URL}/activities/create`, { 
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nuevaTarea)
-        });
-
-        if (res.ok) {
-            alert("Actividad creada exitosamente");
-            e.target.reset();
-            cargarTareas(); // Refrescar lista
-        } else {
-            const error = await res.json();
-            alert("Error al crear: " + error.message);
-        }
-    } catch (error) {
-        console.error(" Error de conexión:", error);
-    }
-});
+let editandoTareaId = null; 
 
 async function cargarTareas() {
     const assignmentId = sessionStorage.getItem('active_assignment');
@@ -366,14 +281,24 @@ async function cargarTareas() {
         const lista = data.activities || (Array.isArray(data) ? data : []);
 
         if (lista.length > 0) {
-            lista.forEach(t => {
-                panel.innerHTML += `
-                    <div style="padding:10px; border:1px solid #ccc; margin-bottom:10px; border-radius:8px;">
-                        <strong>${t.title}</strong> - Ponderación: ${t.weight_percentage}%
-                        <p>${t.description || 'Sin descripción'}</p>
-                        <small>Entrega: ${new Date(t.due_date).toLocaleDateString()}</small>
-                    </div>`;
-            });
+            // Dentro de la función cargarTareas() en profesor.js
+lista.forEach(t => {
+    panel.innerHTML += `
+        <div class="tarea-item" style="padding:15px; border:1px solid #eee; margin-bottom:12px; border-radius:10px; background:#f9f9f9; border-left:5px solid #123E6A;">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <strong style="color:#123E6A;">${t.title}</strong>
+                <div>
+                    <button onclick="prepararEdicionTarea('${t.activity_id}', '${t.title}', '${t.description}', '${t.weight_percentage}', '${t.due_date}')" class="btn-icon" style="color: #2980b9; border:none; background:none; cursor:pointer; margin-right:10px;"><i class="fas fa-edit"></i></button>
+                    <button onclick="eliminarTarea('${t.activity_id}')" class="btn-icon" style="color: #c0392b; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+            <p style="font-size:0.9rem; margin:8px 0;">${t.description}</p>
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#666;">
+                <span><i class="fas fa-calendar"></i> ${new Date(t.due_date).toLocaleDateString()}</span>
+                <strong>${t.weight_percentage}%</strong>
+            </div>
+        </div>`;
+});
         } else {
             panel.innerHTML += '<p>No se encontraron tareas registradas para esta materia.</p>';
         }
@@ -381,6 +306,103 @@ async function cargarTareas() {
         console.error("Error cargando tareas:", error);
     }
 }
+
+// --- FUNCIÓN PARA ELIMINAR ---
+async function eliminarTarea(id) {
+    if (!confirm('¿Estás seguro de eliminar esta actividad?')) return;
+
+    try {
+        // Usando tu ruta específica: /api/activities/delete/{id}
+        const res = await fetch(`${API_URL}/activities/delete/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (res.ok) {
+            alert('Tarea eliminada correctamente');
+            cargarTareas(); 
+        } else {
+            alert('No se pudo eliminar la tarea');
+        }
+    } catch (error) {
+        console.error("Error al eliminar:", error);
+    }
+}
+
+// --- FUNCIÓN PARA PREPARAR LA EDICIÓN ---
+function prepararEdicionTarea(id, titulo, desc, peso, fecha) {
+    editandoTareaId = id;
+    
+    // Llenamos el formulario con los datos actuales
+    document.getElementById('tarea-titulo').value = titulo;
+    document.getElementById('tarea-desc').value = desc;
+    document.getElementById('tarea-weight').value = peso;
+    
+    // Formatear fecha para el input (YYYY-MM-DD)
+    const d = new Date(fecha);
+    document.getElementById('tarea-fin').value = d.toISOString().split('T')[0];
+
+    // Cambiamos el texto del botón
+    const btn = document.querySelector('#form-crear-tarea button');
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-sync"></i> Actualizar Actividad';
+        btn.style.background = '#27ae60';
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// --- MANEJADOR DEL FORMULARIO (CREAR Y ACTUALIZAR) ---
+document.getElementById('form-crear-tarea')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const assignmentId = sessionStorage.getItem('active_assignment');
+    
+    const datosTarea = {
+        assignment_id: parseInt(assignmentId),
+        title: document.getElementById('tarea-titulo').value,
+        description: document.getElementById('tarea-desc').value,
+        weight_percentage: parseFloat(document.getElementById('tarea-weight').value),
+        due_date: document.getElementById('tarea-fin').value
+    };
+
+    try {
+        let url, metodo;
+
+        if (editandoTareaId) {
+            // RUTA PATCH según tu ejemplo: /api/activities/update/{id}
+            url = `${API_URL}/activities/update/${editandoTareaId}`;
+            metodo = 'PATCH';
+        } else {
+            // RUTA POST según tu ejemplo anterior: /api/activities/create
+            url = `${API_URL}/activities/create`;
+            metodo = 'POST';
+        }
+
+        const res = await fetch(url, {
+            method: metodo,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datosTarea)
+        });
+
+        if (res.ok) {
+            alert(editandoTareaId ? "Actividad actualizada" : "Actividad creada");
+            
+            // Limpiar formulario y estado
+            e.target.reset();
+            editandoTareaId = null;
+            const btn = document.querySelector('#form-crear-tarea button');
+            btn.innerHTML = '<i class="fas fa-save"></i> Publicar Actividad';
+            btn.style.background = '#123E6A';
+            
+            cargarTareas(); 
+        } else {
+            const error = await res.json();
+            alert("Error: " + (error.message || "Operación fallida"));
+        }
+    } catch (error) {
+        console.error("Error de conexión:", error);
+    }
+});
 
 // --- 5. NAVEGACIÓN Y UTILIDADES ---
 function showSection(sectionId) {
@@ -401,11 +423,65 @@ function showSection(sectionId) {
         if (sectionId === 'asistencia') cargarTablaAsistencia();
     }
 }
-
 function cerrarSesion() {
     sessionStorage.clear();
     window.location.href = '../access-control-I/login.html';
 }
+
+// --- 6. FUNCION: CARGAR ENTREGAS PARA CALIFICAR ---
+async function cargarEntregasParaCalificar(){
+    const assignmentId = sessionStorage.getItem('active_assignment');
+    const tablaBody = document.getElementById('submissions-body') || document.getElementById('lista-entregas-profesor');
+    if(!tablaBody) return;
+    if(!assignmentId) return tablaBody.innerHTML = '<tr><td colspan="6">No hay asignación activa.</td></tr>';
+    tablaBody.innerHTML = '<tr><td colspan="6">Cargando entregas...</td></tr>';
+    try{
+        // Obtener actividades de la asignación
+        const resAct = await fetch(`${API_URL}/assignments/assignment/${assignmentId}/activities`);
+        const dataAct = await resAct.json();
+        const activities = dataAct.activities || [];
+        const rows = [];
+        for(const a of activities){
+            try{
+                const r = await fetch(`${API_URL}/submissions/activities/${a.activity_id}/submissions`);
+                const jd = await r.json();
+                const subs = jd.submissions || jd.data || [];
+                // intentar obtener calificaciones existentes para esta actividad
+                let grades = [];
+                try{
+                    const rg = await fetch(`${API_URL}/grades-log/activity/${a.activity_id}`);
+                    const jg = await rg.json();
+                    grades = jg.grades || [];
+                }catch(e){ /* ignore */ }
+
+                subs.forEach(s => {
+                    const studentName = s.student_name || s.student || s.submitter_name || '';
+                    const fileName = s.file_path || s.file_path_or_url || '';
+                    const fileUrl = fileName ? `${API_URL.replace('/api','')}/uploads/submissions/${fileName.split('\\').pop()}` : '';
+                    const gradeObj = grades.find(g => String(g.student_user_id) === String(s.student_user_id));
+                    const score = gradeObj ? (gradeObj.score ?? '-') : '-';
+                    rows.push(`
+                        <tr>
+                            <td>${studentName}</td>
+                            <td>${a.title || ''}</td>
+                            <td>${fileUrl ? `<a href="${fileUrl}" target="_blank">Ver</a>` : '-'}</td>
+                            <td>${s.submission_date ? new Date(s.submission_date).toLocaleString() : (s.created_at ? new Date(s.created_at).toLocaleString() : '-')}</td>
+                            <td>${score}</td>
+                            <td><button class="btn" onclick="window.openGradeCreate(${a.activity_id}, ${s.student_user_id})">Calificar</button></td>
+                        </tr>
+                    `);
+                })
+            }catch(e){
+                console.warn('Error cargando entregas para actividad', a.activity_id, e);
+            }
+        }
+        tablaBody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="6">No hay entregas para calificar.</td></tr>';
+    }catch(e){
+        console.error('Error cargando entregas:', e);
+        tablaBody.innerHTML = '<tr><td colspan="6">Error al obtener entregas.</td></tr>';
+    }
+}
+
 
 // Exponer funciones globales
 // --- EXPOSICIÓN GLOBAL ---
@@ -416,5 +492,6 @@ Object.assign(window, {
     prepararEdicion,
     eliminarRecurso,
     manejarSubidaRecurso,
-    cerrarSesion
+    cerrarSesion,
+    refreshSubmissions: cargarEntregasParaCalificar
 });

@@ -9,7 +9,7 @@ export class AssignmentModel {
             `SELECT u.user_id, CONCAT(u.first_name, ' ', u.last_name) AS name, u.email
              FROM users u
              JOIN roles r ON u.role_id = r.role_id
-             WHERE r.role_name = 'Estudiante'
+             WHERE r.role_name = 'student'
              AND u.user_id NOT IN (
                  SELECT e.student_user_id
                  FROM enrollments e
@@ -52,7 +52,7 @@ export class AssignmentModel {
             `SELECT u.user_id, CONCAT(u.first_name, ' ', u.last_name) AS name, u.email
              FROM users u
              JOIN roles r ON u.role_id = r.role_id
-             WHERE r.role_name = 'Docente'
+             WHERE r.role_name = 'teacher'
              AND u.user_id NOT IN (
                  SELECT ta.teacher_user_id
                  FROM teacher_assignments ta

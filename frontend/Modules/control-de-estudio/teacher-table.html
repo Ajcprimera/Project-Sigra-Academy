@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SIGRA | Gestión de Usuarios</title>
+  <title>SIGRA | Gestión de Profesores</title>
   <link rel="stylesheet" href="user-table.css" />
 </head>
 
@@ -12,13 +12,13 @@
   <!-- Navbar superior -->
   <header>
     <nav class="navbar" aria-label="Barra de navegación principal">
-      <a class="brand" aria-label="SIGRA" href="user-table.html">
+      <a class="brand" aria-label="SIGRA" href="teacher-table.html">
         <img class="brand-logo" src="../../Public/resources/Modulo-1/logo.png" alt="Logo SIGRA" />
         <span>SIGRA</span>
       </a>
 
       <div class="nav-links" role="list">
-        <a class="active" href="user-table.html" role="listitem">Inicio</a>
+        <a class="active" href="teacher-table.html" role="listitem">Inicio</a>
         <a href="../academic-structure-II/catalogo-materias/index.html" role="listitem">Catalogo</a>
         <a href="../academic-structure-II/gestion-materias/index.html" role="listitem">Materias</a>
         <a href="../academic-structure-II/definicion-prelaciones/index.html" role="listitem">Prelaciones</a>
@@ -50,8 +50,8 @@
   <!-- Contenido principal -->
   <main>
     <div class="page-header">
-      <h1>Dashboard de usuarios</h1>
-      <p class="subtitle">Administra y supervisa la actividad de los usuarios en el sistema.</p>
+      <h1>Dashboard de profesores</h1>
+      <p class="subtitle">Administra y supervisa la actividad de los profesores en el sistema.</p>
     </div>
 
     <div class="toolbar">
@@ -60,12 +60,12 @@
         <input id="user-filter" type="text" placeholder="Buscar por nombre o correo" />
       </div>
       <div class="actions">
-        <button class="ghost-btn" type="button" id="add-user-btn">Agregar usuario nuevo</button>
+        <button class="ghost-btn" type="button" id="add-user-btn">Agregar profesor nuevo</button>
       </div>
     </div>
 
-    <!-- Tabla de usuarios -->
-    <section class="table-card" aria-label="Tabla de usuarios">
+    <!-- Tabla de profesores -->
+    <section class="table-card" aria-label="Tabla de profesores">
       <div class="table-wrapper">
         <table>
           <thead>
@@ -79,20 +79,20 @@
           </thead>
           <tbody id="users-body">
             <tr id="users-loading">
-              <td colspan="5">Cargando usuarios...</td>
+              <td colspan="5">Cargando profesores...</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="pagination" aria-label="Paginación de usuarios">
+      <div class="pagination" aria-label="Paginación de profesores">
         <div id="pagination" class="pagination-content"></div>
       </div>
     </section>
   </main>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const API_BASE = 'http://localhost:5200/api/auth'
+      const API_BASE = 'http://localhost:3000/api/auth'
       const tbody = document.getElementById('users-body')
       const loadingRow = document.getElementById('users-loading')
       const profileBtn = document.getElementById('profile-button')
@@ -107,6 +107,9 @@
         2: 'Docente',
         3: 'Estudiante'
       }
+
+      // ID del rol de profesor/docente
+      const TEACHER_ROLE_ID = 2
 
       function badge(isActive) {
         const active = Boolean(isActive)
@@ -140,7 +143,7 @@
           const encodedUser = encodeURIComponent(JSON.stringify(user))
 
           const viewBtn = `
-                <button class="icon-link" type="button" data-action="view" data-user="${encodedUser}" aria-label="Ver usuario">
+                <button class="icon-link" type="button" data-action="view" data-user="${encodedUser}" aria-label="Ver profesor">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                     <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6" />
@@ -148,7 +151,7 @@
                 </button>`
 
           const editBtn = `
-                <button class="icon-link" type="button" data-action="edit" data-user="${encodedUser}" aria-label="Editar usuario">
+                <button class="icon-link" type="button" data-action="edit" data-user="${encodedUser}" aria-label="Editar profesor">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path d="M4 20h4l9.5-9.5a1.5 1.5 0 0 0 0-2.12l-1.88-1.88a1.5 1.5 0 0 0-2.12 0L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
                     <path d="M13.5 6.5 17.5 10.5" stroke="currentColor" stroke-width="1.6" />
@@ -156,7 +159,7 @@
                 </button>`
 
           const deleteBtn = `
-                <button class="icon-link danger" type="button" data-action="delete" data-user="${encodedUser}" aria-label="Eliminar usuario">
+                <button class="icon-link danger" type="button" data-action="delete" data-user="${encodedUser}" aria-label="Eliminar profesor">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path d="M5.5 7h13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                     <path d="M10 10v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
@@ -203,7 +206,7 @@
         const actionButtons = actionButtonsFactory()
 
         if (!users.length) {
-          tbody.innerHTML = '<tr><td colspan="5">No hay usuarios registrados.</td></tr>'
+          tbody.innerHTML = '<tr><td colspan="5">No hay profesores registrados.</td></tr>'
           renderPagination(0)
           return
         }
@@ -239,7 +242,7 @@
 
       function getDisplayName(user) {
         const name = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
-        return name || user.email || `Usuario #${user.user_id}`
+        return name || user.email || `Profesor #${user.user_id}`
       }
 
       async function deleteUser(user) {
@@ -253,12 +256,12 @@
           })
           if (!response.ok) {
             const err = await response.json().catch(() => ({}))
-            throw new Error(err.error || 'No se pudo eliminar el usuario')
+            throw new Error(err.error || 'No se pudo eliminar el profesor')
           }
           await loadUsers()
         } catch (error) {
           alert(error.message)
-          console.error('Error eliminando usuario:', error)
+          console.error('Error eliminando profesor:', error)
         }
       }
 
@@ -321,7 +324,7 @@
           console.error('Error llamando a logout en backend:', error)
         } finally {
           clearSessionStorage()
-          window.location.href = './login.html'
+          window.location.href = '../access-control-I/login.html'
         }
       }
 
@@ -356,19 +359,19 @@
           const response = await fetch(`${API_BASE}/users`)
           if (!response.ok) throw new Error('No se pudo obtener usuarios')
           const data = await response.json()
-          allUsers = data.users || []
+          // Filtrar solo profesores (role_id === 2)
+          allUsers = (data.users || []).filter(user => Number(user.role_id) === TEACHER_ROLE_ID)
           filteredUsers = allUsers
           currentPage = 1
-          console.log('Usuarios cargados:', allUsers)
+          console.log('Profesores cargados:', allUsers)
           renderUsers(filteredUsers)
         } catch (error) {
           tbody.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`
-          console.error('Error cargando usuarios:', error)
+          console.error('Error cargando profesores:', error)
         } finally {
           if (loadingRow) loadingRow.remove()
         }
       }
-      console.log(allUsers)
 
       function openModal(user, mode = 'view') {
         const modal = document.getElementById('user-modal')
@@ -378,7 +381,7 @@
 
         currentUser = user
 
-        title.textContent = mode === 'edit' ? 'Editar usuario' : 'Ver usuario'
+        title.textContent = mode === 'edit' ? 'Editar profesor' : 'Ver profesor'
 
         fields.forEach((field) => {
           const input = document.getElementById(`modal-${field}`)
@@ -441,14 +444,14 @@
 
           if (!response.ok) {
             const err = await response.json().catch(() => ({}))
-            throw new Error(err.error || 'No se pudo actualizar el usuario')
+            throw new Error(err.error || 'No se pudo actualizar el profesor')
           }
 
           await loadUsers()
           closeModal()
         } catch (error) {
           alert(error.message)
-          console.error('Error al actualizar usuario:', error)
+          console.error('Error al actualizar profesor:', error)
         }
       }
 
@@ -461,7 +464,7 @@
       const addUserBtn = document.getElementById('add-user-btn')
       if (addUserBtn) {
         addUserBtn.addEventListener('click', () => {
-          window.location.href = './registro.html'
+          window.location.href = '../access-control-I/registro.html'
         })
       }
 
@@ -479,7 +482,7 @@
         }
 
         if (action === 'create') {
-          window.location.href = './registro.html'
+          window.location.href = '../access-control-I/registro.html'
           return
         }
 
@@ -533,7 +536,7 @@
   <div id="user-modal-overlay" class="modal-overlay"></div>
   <div id="user-modal" class="modal">
     <div class="modal-header">
-      <h2 id="user-modal-title">Detalle de usuario</h2>
+      <h2 id="user-modal-title">Detalle de profesor</h2>
       <button id="modal-close" type="button" aria-label="Cerrar" class="icon-link">✕</button>
     </div>
     <div class="modal-body">
