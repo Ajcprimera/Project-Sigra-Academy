@@ -73,8 +73,7 @@ export class ResourceModel {
         if(resource.length === 0) return {error: 'No se pudo obtener el recurso creado'};
         return {
             message: 'Recurso creado exitosamente',
-            resource: resource[0],
-            teacher_user_id: existingAssignment[0].teacher_user_id
+            resource: resource[0]
         }
     }
 
